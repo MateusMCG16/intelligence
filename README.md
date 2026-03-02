@@ -39,6 +39,11 @@ A pilha de ferramentas utilizada tem como finalidade estabelecer interatividade 
 * **Zustand**: Gestor reativo responsável pelo store global.
 * **Google Gemini API**: Modelo base (Gemini 2.5 Flash), infraestrutura geradora que coordena o fluxo de expansão intelectual da aplicação.
 
+## To Do
+
+- [ ] Mudar Título da página
+- [ ] Implementar para utilizar APIs de outros fornecedores (focar no Groq)
+
 ## Ambiente de Desenvolvimento
 
 Para executar e depurar a plataforma em ambiente local, proceda com o roteiro abaixo:
