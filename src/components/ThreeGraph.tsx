@@ -41,16 +41,10 @@ function NodeComponent({
                 onPointerOut={() => setHovered(false)}
             >
                 <sphereGeometry args={[node.radius, 32, 32]} />
-                <meshPhysicalMaterial
+                <meshStandardMaterial
                     color={hovered ? "#ffffff" : node.color}
-                    emissive={node.color}
-                    emissiveIntensity={hovered ? 0.8 : 0.2}
-                    roughness={0.1}
-                    metalness={0.5}
-                    transmission={0.5}
-                    thickness={1.5}
-                    clearcoat={1}
-                    clearcoatRoughness={0.1}
+                    roughness={1}
+                    metalness={0}
                 />
             </mesh>
 
