@@ -8,7 +8,7 @@ import CameraController from '@/components/CameraController';
 import LanguageSelector from '@/components/LanguageSelector';
 import { useInterestStore } from '@/store/useInterestStore';
 import { useLanguageStore } from '@/store/useLanguageStore';
-import { Search, Compass, Sparkles, Trash2 } from 'lucide-react';
+import { Search, Compass, Sparkles, Trash2, Target } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Home() {
@@ -38,7 +38,8 @@ export default function Home() {
       setIsGenerating(true);
       // Import dynamic function here or at the top of the file
       const { generateSubInterests } = await import('@/app/actions');
-      const sub = await generateSubInterests(label, language);
+      const existingLabels = useInterestStore.getState().nodes.map((n: { label: string }) => n.label);
+      const sub = await generateSubInterests(label, language, existingLabels);
       useInterestStore.getState().addNodes(sub, newNode.id);
     } catch (err) {
       console.error(err);
@@ -75,13 +76,22 @@ export default function Home() {
           </div>
           <div className="flex items-center space-x-4">
             {mounted && nodes.length > 0 && (
-              <button
-                onClick={() => useInterestStore.getState().clear()}
-                className="flex items-center space-x-2 text-white/60 hover:text-red-400 transition-colors bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-full backdrop-blur-md border border-white/10"
-                title="Clear Space"
-              >
-                <Trash2 size={16} />
-              </button>
+              <>
+                <button
+                  onClick={() => useInterestStore.getState().clear()}
+                  className="flex items-center space-x-2 text-white/60 hover:text-red-400 transition-colors bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-full backdrop-blur-md border border-white/10"
+                  title="Clear Space"
+                >
+                  <Trash2 size={16} />
+                </button>
+                <button
+                  onClick={() => useInterestStore.getState().setFocusTarget({ x: 0, y: 0, z: 0 })}
+                  className="flex items-center space-x-2 text-white/60 hover:text-blue-400 transition-colors bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-full backdrop-blur-md border border-white/10"
+                  title="Centralizar Câmera"
+                >
+                  <Target size={16} />
+                </button>
+              </>
             )}
             <LanguageSelector />
           </div>

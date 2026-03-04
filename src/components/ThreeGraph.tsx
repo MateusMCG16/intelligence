@@ -78,7 +78,9 @@ function NodeComponent({
                     renderOrder={1}
                     maxWidth={5}
                 >
-                    {node.label.length > 24 ? node.label.slice(0, 22) + '…' : node.label}
+                    {/*Aqui é definidoo tamanho do texto da bolinha de conhecimento!*/}
+
+                    {node.label.length > 35 ? node.label.slice(0, 34) + '…' : node.label}
                 </Text>
             </group>
         </group >
@@ -230,7 +232,8 @@ export default function ThreeGraph() {
         if (loadingNodeId) return;
         setLoadingNodeId(id);
         try {
-            const sub = await generateSubInterests(label, language);
+            const existingLabels = useInterestStore.getState().nodes.map((n: { label: string }) => n.label);
+            const sub = await generateSubInterests(label, language, existingLabels);
             addNodes(sub, id);
         } catch (err) {
             console.error(err);
