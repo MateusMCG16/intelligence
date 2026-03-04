@@ -1,47 +1,128 @@
 "use server";
 
 import { GoogleGenAI } from '@google/genai';
+import Groq from 'groq-sdk';
+import type { Language } from '@/store/useLanguageStore';
 
-const ai = new GoogleGenAI({});
+// ── Clients ──────────────────────────────────────────────────────────────────
+const geminiClient = process.env.GEMINI_API_KEY
+  ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
+  : null;
 
-export async function generateSubInterests(interest: string) {
-  try {
-    if (!process.env.GEMINI_API_KEY) {
-      console.warn("GEMINI_API_KEY is not defined. Using mock data.");
-      return [
-        `${interest} Essentials`,
-        `Advanced ${interest}`,
-        `${interest} Tools`,
-      ];
-    }
+const groqClient = process.env.GROQ_API_KEY
+  ? new Groq({ apiKey: process.env.GROQ_API_KEY })
+  : null;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: `You are an AI that helps brainstorm and expand on interests. Given an interest, provide 3 to 5 highly relevant sub-interests or related topics.
+// ── Language config ──────────────────────────────────────────────────────────
+const LANGUAGE_INSTRUCTIONS: Record<Language, string> = {
+  pt: 'Responda SEMPRE em português brasileiro.',
+  en: 'Always respond in English.',
+};
+
+// ── Shared prompt ────────────────────────────────────────────────────────────
+function buildSystemPrompt(language: Language) {
+  return `You are an AI that helps brainstorm and expand on interests. Given an interest, provide 3 to 5 highly relevant sub-interests or related topics.
 Only provide a JSON array of strings as the response. Do not include any markdown formatting like \`\`\`json. Just the raw array.
 Example: ["Sub Topic 1", "Sub Topic 2", "Sub Topic 3"]
 
-Interest: ${interest}
-`,
-    });
-    
-    const text = response.text;
-    if (!text) throw new Error("No response from Gemini");
-    
-    // Attempt to parse the array
-    const cleanText = text.replace(/```json/gi, '').replace(/```/g, '').trim();
-    const array = JSON.parse(cleanText);
-    if (!Array.isArray(array)) throw new Error("Response is not an array");
-    
-    return array.slice(0, 5); // Return max 5 items
-  } catch (error) {
-    console.error("Gemini API error:", error);
-    // Return mock data for fallback
-    return [
-      `${interest} Essentials`,
-      `Advanced ${interest}`,
-      `${interest} Tools`,
-      `${interest} History`
-    ];
+${LANGUAGE_INSTRUCTIONS[language]}`;
+}
+
+function buildUserPrompt(interest: string) {
+  return `Interest: ${interest}`;
+}
+
+// ── Response parser ──────────────────────────────────────────────────────────
+function parseResponse(text: string): string[] {
+  const cleanText = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+  const array = JSON.parse(cleanText);
+  if (!Array.isArray(array)) throw new Error("Response is not an array");
+  return array.slice(0, 5);
+}
+
+
+
+// ── Gemini provider ──────────────────────────────────────────────────────────
+async function callGemini(interest: string, language: Language): Promise<string[]> {
+  if (!geminiClient) throw new Error("Gemini client not configured");
+
+  const response = await geminiClient.models.generateContent({
+    model: 'gemini-2.0-flash',
+    contents: `${buildSystemPrompt(language)}\n\n${buildUserPrompt(interest)}`,
+  });
+
+  const text = response.text;
+  if (!text) throw new Error("No response from Gemini");
+
+  return parseResponse(text);
+}
+
+// ── Groq provider (fallback) ─────────────────────────────────────────────────
+async function callGroq(interest: string, language: Language): Promise<string[]> {
+  if (!groqClient) throw new Error("Groq client not configured");
+
+  const response = await groqClient.chat.completions.create({
+    model: 'llama-3.1-8b-instant',
+    messages: [
+      { role: 'system', content: buildSystemPrompt(language) },
+      { role: 'user', content: buildUserPrompt(interest) },
+    ],
+    temperature: 0.7,
+    max_tokens: 256,
+  });
+
+  const text = response.choices[0]?.message?.content;
+  if (!text) throw new Error("No response from Groq");
+
+  return parseResponse(text);
+}
+
+// ── Main function with automatic fallback ────────────────────────────────────
+export async function generateSubInterests(interest: string, language: Language = 'pt'): Promise<string[]> {
+  // If no API keys at all, throw error
+  if (!geminiClient && !groqClient) {
+    throw new Error("No API keys configured. Please set GEMINI_API_KEY or GROQ_API_KEY.");
   }
+
+  // Try Gemini first
+  if (geminiClient) {
+    try {
+      console.log("[AI] Trying Gemini...");
+      const result = await callGemini(interest, language);
+      console.log("[AI] ✅ Gemini responded successfully");
+      return result;
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      console.warn(`[AI] ⚠️ Gemini failed: ${errMsg}`);
+
+      // Check if it's a rate limit / quota error
+      const isRateLimit = errMsg.includes('429') ||
+        errMsg.includes('quota') ||
+        errMsg.includes('RESOURCE_EXHAUSTED') ||
+        errMsg.includes('rate') ||
+        errMsg.includes('limit');
+
+      if (isRateLimit) {
+        console.log("[AI] 🔄 Rate limit detected. Falling back to Groq...");
+      } else {
+        console.log("[AI] 🔄 Gemini error. Falling back to Groq...");
+      }
+    }
+  }
+
+  // Fallback to Groq
+  if (groqClient) {
+    try {
+      console.log("[AI] Trying Groq (llama-3.1-8b-instant)...");
+      const result = await callGroq(interest, language);
+      console.log("[AI] ✅ Groq responded successfully");
+      return result;
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      console.error(`[AI] ❌ Groq also failed: ${errMsg}`);
+    }
+  }
+
+  // Both failed — throw error
+  throw new Error("All AI providers failed. Please try again later.");
 }

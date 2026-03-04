@@ -1,23 +1,27 @@
 "use client";
 
-import { useRef, useMemo, useState, useEffect } from 'react';
+import { useRef, useMemo, useState, useEffect, useCallback } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Text, Float, TrackballControls, Sphere, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { useInterestStore, InterestNode, InterestLink } from '@/store/useInterestStore';
+import { useLanguageStore } from '@/store/useLanguageStore';
 import { generateSubInterests } from '@/app/actions';
 
 function NodeComponent({
     node,
+    onFocus,
     onExpand
 }: {
     node: InterestNode;
+    onFocus: (nodeId: string) => void;
     onExpand: (nodeId: string, label: string) => void;
 }) {
     const meshRef = useRef<THREE.Mesh>(null);
     const textRef = useRef<THREE.Group>(null);
     const [hovered, setHovered] = useState(false);
     const { camera } = useThree();
+    const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useFrame(() => {
         if (meshRef.current) {
@@ -29,14 +33,28 @@ function NodeComponent({
         }
     });
 
+    const handleClick = (e: { stopPropagation: () => void }) => {
+        e.stopPropagation();
+
+        if (clickTimer.current) {
+            // Second click within window → double click → expand
+            clearTimeout(clickTimer.current);
+            clickTimer.current = null;
+            onExpand(node.id, node.label);
+        } else {
+            // First click → wait to see if it's a double click
+            clickTimer.current = setTimeout(() => {
+                clickTimer.current = null;
+                onFocus(node.id);
+            }, 300);
+        }
+    };
+
     return (
         <group>
             <mesh
                 ref={meshRef}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    onExpand(node.id, node.label);
-                }}
+                onClick={handleClick}
                 onPointerOver={() => setHovered(true)}
                 onPointerOut={() => setHovered(false)}
             >
@@ -196,14 +214,22 @@ function PhysicsEngine() {
 }
 
 export default function ThreeGraph() {
-    const { nodes, addNodes } = useInterestStore();
+    const { nodes, addNodes, setFocusTarget } = useInterestStore();
+    const { language } = useLanguageStore();
     const [loadingNodeId, setLoadingNodeId] = useState<string | null>(null);
+
+    const handleFocus = useCallback((nodeId: string) => {
+        const node = useInterestStore.getState().nodes.find(n => n.id === nodeId);
+        if (node) {
+            setFocusTarget({ x: node.x, y: node.y, z: node.z });
+        }
+    }, [setFocusTarget]);
 
     const handleExpand = async (id: string, label: string) => {
         if (loadingNodeId) return;
         setLoadingNodeId(id);
         try {
-            const sub = await generateSubInterests(label);
+            const sub = await generateSubInterests(label, language);
             addNodes(sub, id);
         } catch (err) {
             console.error(err);
@@ -221,6 +247,7 @@ export default function ThreeGraph() {
                 <NodeComponent
                     key={node.id}
                     node={node}
+                    onFocus={handleFocus}
                     onExpand={handleExpand}
                 />
             ))}

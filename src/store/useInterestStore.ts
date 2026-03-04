@@ -24,9 +24,11 @@ export interface InterestLink {
 interface InterestStore {
     nodes: InterestNode[];
     links: InterestLink[];
+    focusTarget: { x: number; y: number; z: number } | null;
     addNode: (label: string, parentId?: string | null) => InterestNode;
     addNodes: (labels: string[], parentId: string) => void;
     setNodes: (nodes: InterestNode[]) => void;
+    setFocusTarget: (target: { x: number; y: number; z: number } | null) => void;
     clear: () => void;
 }
 
@@ -42,6 +44,7 @@ const colors = [
 export const useInterestStore = create<InterestStore>((set, get) => ({
     nodes: [],
     links: [],
+    focusTarget: null,
     addNode: (label, parentId = null) => {
         const id = Math.random().toString(36).substring(2, 9);
 
@@ -91,5 +94,6 @@ export const useInterestStore = create<InterestStore>((set, get) => ({
         labels.forEach(label => get().addNode(label, parentId));
     },
     setNodes: (nodes) => set({ nodes }),
-    clear: () => set({ nodes: [], links: [] })
+    setFocusTarget: (target) => set({ focusTarget: target }),
+    clear: () => set({ nodes: [], links: [], focusTarget: null })
 }));

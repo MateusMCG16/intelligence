@@ -2,15 +2,19 @@
 
 import { useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Stars, Environment, Float } from '@react-three/drei';
+import { Stars, Environment, Float } from '@react-three/drei';
 import ThreeGraph from '@/components/ThreeGraph';
+import CameraController from '@/components/CameraController';
+import LanguageSelector from '@/components/LanguageSelector';
 import { useInterestStore } from '@/store/useInterestStore';
+import { useLanguageStore } from '@/store/useLanguageStore';
 import { Search, Compass, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Home() {
   const [input, setInput] = useState("");
   const { addNode, nodes } = useInterestStore();
+  const { language } = useLanguageStore();
 
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -29,7 +33,7 @@ export default function Home() {
       setIsGenerating(true);
       // Import dynamic function here or at the top of the file
       const { generateSubInterests } = await import('@/app/actions');
-      const sub = await generateSubInterests(label);
+      const sub = await generateSubInterests(label, language);
       useInterestStore.getState().addNodes(sub, newNode.id);
     } catch (err) {
       console.error(err);
@@ -50,14 +54,7 @@ export default function Home() {
             <ThreeGraph />
           </Float>
 
-          <OrbitControls
-            enablePan={false}
-            enableZoom={true}
-            minDistance={2}
-            maxDistance={50}
-            autoRotate
-            autoRotateSpeed={0.5}
-          />
+          <CameraController />
           <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
           <Environment preset="city" />
         </Canvas>
@@ -71,6 +68,7 @@ export default function Home() {
             </div>
             <h1 className="text-xl font-medium tracking-tight">Intelligence Space</h1>
           </div>
+          <LanguageSelector />
         </div>
       </div>
 
