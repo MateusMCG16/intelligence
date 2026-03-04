@@ -22,6 +22,7 @@ const LANGUAGE_INSTRUCTIONS: Record<Language, string> = {
 // ── Shared prompt ────────────────────────────────────────────────────────────
 function buildSystemPrompt(language: Language) {
   return `You are an AI that helps brainstorm and expand on interests. Given an interest, provide 3 to 5 highly relevant sub-interests or related topics.
+Each topic name MUST be short and concise — maximum 3 to 4 words. Do not use long descriptions.
 Only provide a JSON array of strings as the response. Do not include any markdown formatting like \`\`\`json. Just the raw array.
 Example: ["Sub Topic 1", "Sub Topic 2", "Sub Topic 3"]
 

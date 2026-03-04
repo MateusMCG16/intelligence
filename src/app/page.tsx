@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Stars, Environment, Float } from '@react-three/drei';
 import ThreeGraph from '@/components/ThreeGraph';
@@ -8,7 +8,7 @@ import CameraController from '@/components/CameraController';
 import LanguageSelector from '@/components/LanguageSelector';
 import { useInterestStore } from '@/store/useInterestStore';
 import { useLanguageStore } from '@/store/useLanguageStore';
-import { Search, Compass, Sparkles } from 'lucide-react';
+import { Search, Compass, Sparkles, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Home() {
@@ -17,6 +17,11 @@ export default function Home() {
   const { language } = useLanguageStore();
 
   const [isGenerating, setIsGenerating] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,7 +73,18 @@ export default function Home() {
             </div>
             <h1 className="text-xl font-medium tracking-tight">Intelligence Space</h1>
           </div>
-          <LanguageSelector />
+          <div className="flex items-center space-x-4">
+            {mounted && nodes.length > 0 && (
+              <button
+                onClick={() => useInterestStore.getState().clear()}
+                className="flex items-center space-x-2 text-white/60 hover:text-red-400 transition-colors bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-full backdrop-blur-md border border-white/10"
+                title="Clear Space"
+              >
+                <Trash2 size={16} />
+              </button>
+            )}
+            <LanguageSelector />
+          </div>
         </div>
       </div>
 
@@ -105,7 +121,7 @@ export default function Home() {
           </form>
 
           <AnimatePresence>
-            {nodes.length === 0 && (
+            {mounted && nodes.length === 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}

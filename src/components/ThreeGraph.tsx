@@ -69,18 +69,19 @@ function NodeComponent({
             <group ref={textRef}>
                 {/* Glow effect text */}
                 <Text
-                    fontSize={0.4}
+                    fontSize={node.radius < 1 ? 0.3 : 0.4}
                     color="#ffffff"
                     anchorX="center"
                     anchorY="middle"
                     outlineWidth={0.02}
                     outlineColor="#000000"
                     renderOrder={1}
+                    maxWidth={5}
                 >
-                    {node.label}
+                    {node.label.length > 24 ? node.label.slice(0, 22) + '…' : node.label}
                 </Text>
             </group>
-        </group>
+        </group >
     );
 }
 

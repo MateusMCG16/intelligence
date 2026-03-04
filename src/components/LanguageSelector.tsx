@@ -52,8 +52,8 @@ export default function LanguageSelector() {
                                         setIsOpen(false);
                                     }}
                                     className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-all duration-200 cursor-pointer ${language === lang
-                                            ? 'bg-white/10 text-white'
-                                            : 'text-white/60 hover:bg-white/5 hover:text-white'
+                                        ? 'bg-white/10 text-white'
+                                        : 'text-white/60 hover:bg-white/5 hover:text-white'
                                         }`}
                                 >
                                     <span className="text-base">{LANGUAGE_FLAGS[lang]}</span>

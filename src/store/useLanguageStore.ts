@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 export type Language = 'pt' | 'en';
 
@@ -22,7 +23,14 @@ export const LANGUAGE_FLAGS: Record<Language, string> = {
     en: '🇺🇸',
 };
 
-export const useLanguageStore = create<LanguageStore>((set) => ({
-    language: 'pt',
-    setLanguage: (language) => set({ language }),
-}));
+export const useLanguageStore = create<LanguageStore>()(
+    persist(
+        (set) => ({
+            language: 'pt',
+            setLanguage: (language) => set({ language }),
+        }),
+        {
+            name: 'language-storage',
+        }
+    )
+);
