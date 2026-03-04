@@ -74,10 +74,13 @@ src/
 
 ## To Do
 
-- [ ] Mudar Título da página
+- [x] ~~Mudar Título da página~~
 - [x] ~~Implementar para utilizar APIs de outros fornecedores (focar no Groq)~~
 - [x] ~~Seletor de idioma (Português / Inglês)~~
 - [x] ~~Single click para focar câmera / Double click para expandir~~
+- [x] ~~Aumentar limite de exibição de texto dos nós para 35 caracteres~~
+- [x] ~~Evitar geração de nós repetidos pela IA (passar contexto de nós já existentes)~~
+- [x] ~~Adicionar botão (Target) para centralizar e resetar a câmera no ponto de origem~~
 
 ## Ambiente de Desenvolvimento
 
