@@ -13,6 +13,8 @@ const groqClient = process.env.GROQ_API_KEY
   ? new Groq({ apiKey: process.env.GROQ_API_KEY })
   : null;
 
+const mistralApiKey = process.env.MISTRAL_API_KEY || null;
+
 // ── Language config ──────────────────────────────────────────────────────────
 const LANGUAGE_INSTRUCTIONS: Record<Language, string> = {
   pt: 'Responda SEMPRE em português brasileiro.',
@@ -45,10 +47,15 @@ function parseResponse(text: string): string[] {
   return array.slice(0, 5);
 }
 
+export interface GenerateResponse {
+  topics: string[];
+  tokens: number;
+}
+
 
 
 // ── Gemini provider ──────────────────────────────────────────────────────────
-async function callGemini(interest: string, language: Language, existingInterests: string[]): Promise<string[]> {
+async function callGemini(interest: string, language: Language, existingInterests: string[]): Promise<GenerateResponse> {
   if (!geminiClient) throw new Error("Gemini client not configured");
 
   const response = await geminiClient.models.generateContent({
@@ -59,11 +66,11 @@ async function callGemini(interest: string, language: Language, existingInterest
   const text = response.text;
   if (!text) throw new Error("No response from Gemini");
 
-  return parseResponse(text);
+  return { topics: parseResponse(text), tokens: response.usageMetadata?.totalTokenCount || 0 };
 }
 
 // ── Groq provider (fallback) ─────────────────────────────────────────────────
-async function callGroq(interest: string, language: Language, existingInterests: string[]): Promise<string[]> {
+async function callGroq(interest: string, language: Language, existingInterests: string[]): Promise<GenerateResponse> {
   if (!groqClient) throw new Error("Groq client not configured");
 
   const response = await groqClient.chat.completions.create({
@@ -79,55 +86,143 @@ async function callGroq(interest: string, language: Language, existingInterests:
   const text = response.choices[0]?.message?.content;
   if (!text) throw new Error("No response from Groq");
 
-  return parseResponse(text);
+  return { topics: parseResponse(text), tokens: response.usage?.total_tokens || 0 };
+}
+
+// ── Mistral provider (fallback) ──────────────────────────────────────────────
+async function callMistral(interest: string, language: Language, existingInterests: string[]): Promise<GenerateResponse> {
+  if (!mistralApiKey) throw new Error("Mistral client not configured");
+
+  const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${mistralApiKey}`
+    },
+    body: JSON.stringify({
+      model: "mistral-small-latest",
+      messages: [
+        { role: 'system', content: buildSystemPrompt(language, existingInterests) },
+        { role: 'user', content: buildUserPrompt(interest) }
+      ],
+      temperature: 0.7,
+      max_tokens: 256
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Mistral API Error: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  const text = data.choices[0]?.message?.content;
+  if (!text) throw new Error("No response from Mistral");
+
+  return { topics: parseResponse(text), tokens: data.usage?.total_tokens || 0 };
 }
 
 // ── Main function with automatic fallback ────────────────────────────────────
-export async function generateSubInterests(interest: string, language: Language = 'pt', existingInterests: string[] = []): Promise<string[]> {
+export async function generateSubInterests(
+  interest: string,
+  language: Language = 'pt',
+  existingInterests: string[] = [],
+  provider: 'auto' | 'gemini' | 'groq' | 'mistral' = 'auto'
+): Promise<GenerateResponse> {
   // If no API keys at all, throw error
-  if (!geminiClient && !groqClient) {
-    throw new Error("No API keys configured. Please set GEMINI_API_KEY or GROQ_API_KEY.");
+  if (!geminiClient && !groqClient && !mistralApiKey) {
+    throw new Error("No API keys configured. Please set GEMINI_API_KEY, GROQ_API_KEY or MISTRAL_API_KEY.");
   }
 
-  // Try Gemini first
+  if (provider === 'gemini' || provider === 'auto') {
+    if (geminiClient) {
+      try {
+        console.log("[AI] Trying Gemini...");
+        const result = await callGemini(interest, language, existingInterests);
+        console.log("[AI] ✅ Gemini responded successfully");
+        return result;
+      } catch (error: unknown) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        console.warn(`[AI] ⚠️ Gemini failed: ${errMsg}`);
+        if (provider === 'gemini') throw new Error(`Gemini Error: ${errMsg}`);
+        console.log("[AI] 🔄 Falling back to next provider...");
+      }
+    } else if (provider === 'gemini') {
+      throw new Error("Gemini API key is not configured.");
+    }
+  }
+
+  if (provider === 'groq' || provider === 'auto') {
+    if (groqClient) {
+      try {
+        console.log("[AI] Trying Groq (llama-3.1-8b-instant)...");
+        const result = await callGroq(interest, language, existingInterests);
+        console.log("[AI] ✅ Groq responded successfully");
+        return result;
+      } catch (error: unknown) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        console.error(`[AI] ❌ Groq failed: ${errMsg}`);
+        if (provider === 'groq') throw new Error(`Groq Error: ${errMsg}`);
+        console.log("[AI] 🔄 Falling back to next provider...");
+      }
+    } else if (provider === 'groq') {
+      throw new Error("Groq API key is not configured.");
+    }
+  }
+
+  if (provider === 'mistral' || provider === 'auto') {
+    if (mistralApiKey) {
+      try {
+        console.log("[AI] Trying Mistral (mistral-small-latest)...");
+        const result = await callMistral(interest, language, existingInterests);
+        console.log("[AI] ✅ Mistral responded successfully");
+        return result;
+      } catch (error: unknown) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        console.error(`[AI] ❌ Mistral failed: ${errMsg}`);
+        if (provider === 'mistral') throw new Error(`Mistral Error: ${errMsg}`);
+      }
+    } else if (provider === 'mistral') {
+      throw new Error("Mistral API key is not configured.");
+    }
+  }
+
+  // All failed — throw error
+  throw new Error("All AI providers failed or no configured providers were available. Please try again later.");
+}
+
+export async function checkAiProviders(): Promise<Record<'gemini' | 'groq' | 'mistral', boolean>> {
+  const status = {
+    gemini: false,
+    groq: false,
+    mistral: false,
+  };
+
   if (geminiClient) {
     try {
-      console.log("[AI] Trying Gemini...");
-      const result = await callGemini(interest, language, existingInterests);
-      console.log("[AI] ✅ Gemini responded successfully");
-      return result;
-    } catch (error: unknown) {
-      const errMsg = error instanceof Error ? error.message : String(error);
-      console.warn(`[AI] ⚠️ Gemini failed: ${errMsg}`);
-
-      // Check if it's a rate limit / quota error
-      const isRateLimit = errMsg.includes('429') ||
-        errMsg.includes('quota') ||
-        errMsg.includes('RESOURCE_EXHAUSTED') ||
-        errMsg.includes('rate') ||
-        errMsg.includes('limit');
-
-      if (isRateLimit) {
-        console.log("[AI] 🔄 Rate limit detected. Falling back to Groq...");
-      } else {
-        console.log("[AI] 🔄 Gemini error. Falling back to Groq...");
-      }
+      await callGemini("test", "en", []);
+      status.gemini = true;
+    } catch (e) {
+      status.gemini = false;
     }
   }
 
-  // Fallback to Groq
   if (groqClient) {
     try {
-      console.log("[AI] Trying Groq (llama-3.1-8b-instant)...");
-      const result = await callGroq(interest, language, existingInterests);
-      console.log("[AI] ✅ Groq responded successfully");
-      return result;
-    } catch (error: unknown) {
-      const errMsg = error instanceof Error ? error.message : String(error);
-      console.error(`[AI] ❌ Groq also failed: ${errMsg}`);
+      await callGroq("test", "en", []);
+      status.groq = true;
+    } catch (e) {
+      status.groq = false;
     }
   }
 
-  // Both failed — throw error
-  throw new Error("All AI providers failed. Please try again later.");
+  if (mistralApiKey) {
+    try {
+      await callMistral("test", "en", []);
+      status.mistral = true;
+    } catch (e) {
+      status.mistral = false;
+    }
+  }
+
+  return status;
 }

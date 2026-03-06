@@ -31,6 +31,8 @@ interface InterestStore {
     setNodes: (nodes: InterestNode[]) => void;
     setFocusTarget: (target: { x: number; y: number; z: number } | null) => void;
     clear: () => void;
+    totalTokens: number;
+    addTokens: (amount: number) => void;
 }
 
 const colors = [
@@ -48,6 +50,8 @@ export const useInterestStore = create<InterestStore>()(
             nodes: [],
             links: [],
             focusTarget: null,
+            totalTokens: 0,
+            addTokens: (amount) => set((state) => ({ totalTokens: state.totalTokens + amount })),
             addNode: (label, parentId = null) => {
                 const id = Math.random().toString(36).substring(2, 9);
 
@@ -98,13 +102,14 @@ export const useInterestStore = create<InterestStore>()(
             },
             setNodes: (nodes) => set({ nodes }),
             setFocusTarget: (target) => set({ focusTarget: target }),
-            clear: () => set({ nodes: [], links: [], focusTarget: null })
+            clear: () => set({ nodes: [], links: [], focusTarget: null, totalTokens: 0 })
         }),
         {
             name: 'interest-storage',
             partialize: (state) => ({
                 nodes: state.nodes,
                 links: state.links,
+                totalTokens: state.totalTokens,
                 // We typically don't persist focusTarget, or we could. 
                 // Let's preserve everything, except we might not need to filter.
                 // Omitting partialize will persist everything, which is fine.
