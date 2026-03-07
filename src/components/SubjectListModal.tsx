@@ -78,7 +78,7 @@ const TreeNode = ({
         <span className="text-sm text-white/90">{node.label}</span>
       </div>
       {hasChildren && !isCollapsed && (
-        <div className="ml-4 pl-3 border-l border-white/10 flex flex-col">
+        <div className="ml-2 pl-2 border-l border-white/10 flex flex-col">
           {node.children.map((child) => (
             <TreeNode
               key={child.id}
@@ -109,15 +109,19 @@ export default function SubjectListModal({
   useEffect(() => {
     if (!isOpen) return;
 
-    const currentNodes = useInterestStore.getState().nodes.map((node) => ({
-      id: node.id,
-      label: node.label,
-      parentId: node.parentId,
-      color: node.color,
-    }));
+    const frame = window.requestAnimationFrame(() => {
+      const currentNodes = useInterestStore.getState().nodes.map((node) => ({
+        id: node.id,
+        label: node.label,
+        parentId: node.parentId,
+        color: node.color,
+      }));
 
-    setSnapshotNodes(currentNodes);
-    setCollapsedIds(new Set());
+      setSnapshotNodes(currentNodes);
+      setCollapsedIds(new Set());
+    });
+
+    return () => window.cancelAnimationFrame(frame);
   }, [isOpen]);
 
   const roots = useMemo(() => buildTree(snapshotNodes), [snapshotNodes]);
@@ -170,7 +174,7 @@ export default function SubjectListModal({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               transition={{ duration: 0.2, type: "spring", bounce: 0 }}
-              className="relative w-full max-w-2xl max-h-[70vh] bg-black/45 backdrop-blur-[10px] border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+              className="relative w-full max-w-5xl max-h-[80vh] bg-black/45 backdrop-blur-[10px] border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
             >
               <div className="flex items-center justify-between p-4 border-b border-white/10 bg-white/5">
                 <h2 className="text-lg font-medium text-white/90">

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Stars, Environment, Float } from "@react-three/drei";
@@ -11,7 +12,7 @@ import SubjectListModal from "@/components/SubjectListModal";
 import { useInterestStore } from "@/store/useInterestStore";
 import { useLanguageStore } from "@/store/useLanguageStore";
 import { useSettingsStore } from "@/store/useSettingsStore";
-import { Search, Compass, Sparkles, Target } from "lucide-react";
+import { Search, Compass, Sparkles, Target, BookOpen } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function Home() {
@@ -133,6 +134,13 @@ export default function Home() {
             </AnimatePresence>
           </div>
           <div className="flex items-center space-x-4">
+            <Link
+              href="/knowledge"
+              className="flex items-center justify-center w-10 h-10 bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl transition-all duration-300 text-white/80 hover:text-white cursor-pointer"
+              title="Rota de Conhecimento"
+            >
+              <BookOpen size={18} />
+            </Link>
             {mounted && nodes.length > 0 && (
               <>
                 <button
