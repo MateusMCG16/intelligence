@@ -81,22 +81,20 @@ export default function Home() {
           dpr={[1, 2]}
         >
           <color attach="background" args={["#020202"]} />
-          <ambientLight intensity={0.4} />
-          <pointLight position={[10, 10, 10]} intensity={1.5} color="#4444ff" />
-          <pointLight position={[-10, -10, -10]} intensity={1} color="#ff44ff" />
+          <ambientLight intensity={0.2} />
+          <pointLight position={[15, 15, 15]} intensity={1.5} />
+          <pointLight position={[-15, -15, -15]} intensity={0.5} />
 
           <Suspense fallback={<SceneLoader />}>
-            <Float speed={1.5} rotationIntensity={0.1} floatIntensity={0.2}>
-              <ThreeGraph isSimulationPaused={isSubjectModalOpen} />
-            </Float>
+            <ThreeGraph isSimulationPaused={isSubjectModalOpen} />
             <Stars
-              radius={100}
-              depth={60}
-              count={starsMotionEnabled ? 5000 : 2000}
-              factor={4}
+              radius={150}
+              depth={100}
+              count={starsMotionEnabled ? 7000 : 3000}
+              factor={6}
               saturation={0}
               fade
-              speed={isSubjectModalOpen || !starsMotionEnabled ? 0 : 0.6}
+              speed={isSubjectModalOpen || !starsMotionEnabled ? 0 : 0.8}
             />
           </Suspense>
 

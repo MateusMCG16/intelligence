@@ -1,14 +1,13 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import { useInterestStore } from "@/store/useInterestStore";
 
 /**
- * CameraController replaces the basic OrbitControls.
- * It smoothly animates the orbit target to the selected node's position.
+ * CameraController handles smooth camera movement and focus.
  */
 interface CameraControllerProps {
   isRotationPaused?: boolean;
@@ -18,7 +17,7 @@ export default function CameraController({
   isRotationPaused = false,
 }: CameraControllerProps) {
   const controlsRef = useRef<React.ComponentRef<typeof OrbitControls>>(null);
-  const { focusTarget } = useInterestStore();
+  const { focusTarget, focusNodeId } = useInterestStore();
   const targetVec = useRef(new THREE.Vector3(0, 0, 0));
 
   useFrame(() => {
@@ -30,13 +29,16 @@ export default function CameraController({
       : new THREE.Vector3(0, 0, 0);
 
     // Smoothly interpolate (lerp) towards the desired target
-    targetVec.current.lerp(desired, 0.05);
+    // We use a slightly faster lerp for more responsiveness
+    targetVec.current.lerp(desired, 0.1);
 
     // Apply to OrbitControls
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const controls = controlsRef.current as any;
     if (controls.target) {
       controls.target.copy(targetVec.current);
+      // Only auto-rotate if we are NOT focusing on a specific node
+      controls.autoRotate = !isRotationPaused && !focusNodeId;
       controls.update();
     }
   });
@@ -47,9 +49,11 @@ export default function CameraController({
       enablePan={false}
       enableZoom={true}
       minDistance={2}
-      maxDistance={50}
-      autoRotate={!isRotationPaused}
-      autoRotateSpeed={0.5}
+      maxDistance={60}
+      autoRotate={!isRotationPaused && !focusNodeId}
+      autoRotateSpeed={0.8}
+      enableDamping={true}
+      dampingFactor={0.05}
     />
   );
 }

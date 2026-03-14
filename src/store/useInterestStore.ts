@@ -27,22 +27,25 @@ interface InterestStore {
   nodes: InterestNode[];
   links: InterestLink[];
   focusTarget: { x: number; y: number; z: number } | null;
+  focusNodeId: string | null;
   addNode: (label: string, parentId?: string | null) => InterestNode;
   addNodes: (labels: string[], parentId: string) => void;
   setNodes: (nodes: InterestNode[]) => void;
   setFocusTarget: (target: { x: number; y: number; z: number } | null) => void;
+  setFocusNodeId: (id: string | null) => void;
   clear: () => void;
   totalTokens: number;
   addTokens: (amount: number) => void;
 }
 
 const colors = [
-  "#4ade80", // green-400
-  "#60a5fa", // blue-400
-  "#c084fc", // purple-400
-  "#f87171", // red-400
-  "#fbbf24", // amber-400
-  "#2dd4bf", // teal-400
+  "#ff0000", // Red
+  "#00ff00", // Green
+  "#0066ff", // Blue
+  "#ffff00", // Yellow
+  "#ff00ff", // Magenta
+  "#00ffff", // Cyan
+  "#ff9900", // Orange
 ];
 
 export const useInterestStore = create<InterestStore>()(
@@ -51,9 +54,10 @@ export const useInterestStore = create<InterestStore>()(
       nodes: [],
       links: [],
       focusTarget: null,
-      totalTokens: 0,
+      focusNodeId: null,
       addTokens: (amount) =>
         set((state) => ({ totalTokens: state.totalTokens + amount })),
+      setFocusNodeId: (id) => set({ focusNodeId: id }),
       addNode: (label, parentId = null) => {
         const cleanedLabel = label.trim();
         const existingNode = get().nodes.find((node) =>
