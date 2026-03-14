@@ -55,6 +55,7 @@ export const useInterestStore = create<InterestStore>()(
       links: [],
       focusTarget: null,
       focusNodeId: null,
+      totalTokens: 0,
       addTokens: (amount) =>
         set((state) => ({ totalTokens: state.totalTokens + amount })),
       setFocusNodeId: (id) => set({ focusNodeId: id }),
