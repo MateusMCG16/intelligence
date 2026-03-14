@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
@@ -19,6 +19,9 @@ export default function CameraController({
   const controlsRef = useRef<React.ComponentRef<typeof OrbitControls>>(null);
   const { focusTarget, focusNodeId } = useInterestStore();
   const targetVec = useRef(new THREE.Vector3(0, 0, 0));
+  const defaultDistanceRef = useRef<number | null>(null);
+  const offsetDir = useRef(new THREE.Vector3(0, 0, 1));
+  const desiredPos = useRef(new THREE.Vector3(0, 0, 0));
 
   useFrame(() => {
     if (!controlsRef.current) return;
@@ -35,7 +38,31 @@ export default function CameraController({
     // Apply to OrbitControls
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const controls = controlsRef.current as any;
-    if (controls.target) {
+    if (controls.target && controls.object?.position) {
+      if (defaultDistanceRef.current === null) {
+        defaultDistanceRef.current = controls.object.position.distanceTo(
+          controls.target,
+        );
+      }
+
+      offsetDir.current
+        .copy(controls.object.position)
+        .sub(controls.target)
+        .normalize();
+
+      const desiredDistance = focusNodeId
+        ? 7
+        : (defaultDistanceRef.current ?? 15);
+
+      desiredPos.current
+        .copy(targetVec.current)
+        .addScaledVector(offsetDir.current, desiredDistance);
+
+      controls.object.position.lerp(
+        desiredPos.current,
+        focusNodeId ? 0.12 : 0.08,
+      );
+
       controls.target.copy(targetVec.current);
       // Only auto-rotate if we are NOT focusing on a specific node
       controls.autoRotate = !isRotationPaused && !focusNodeId;

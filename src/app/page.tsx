@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useState, useEffect, Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
-import { Float, Html, Stars } from "@react-three/drei";
+import { Html, Stars } from "@react-three/drei";
+import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import ThreeGraph from "@/components/ThreeGraph";
 import CameraController from "@/components/CameraController";
 import LanguageSelector from "@/components/LanguageSelector";
@@ -12,15 +13,26 @@ import SubjectListModal from "@/components/SubjectListModal";
 import { useInterestStore } from "@/store/useInterestStore";
 import { useLanguageStore } from "@/store/useLanguageStore";
 import { useSettingsStore } from "@/store/useSettingsStore";
-import { Search, Compass, Sparkles, Target, BookOpen, Activity, Zap, Loader2 } from "lucide-react";
+import {
+  Search,
+  Compass,
+  Sparkles,
+  Target,
+  BookOpen,
+  Activity,
+  Zap,
+  Loader2,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 function SceneLoader() {
   return (
     <Html center>
-      <div className="flex flex-col items-center gap-4 bg-black/40 p-8 rounded-full backdrop-blur-3xl">
+      <div className="flex flex-col items-center gap-4 bg-black/40 p-8 rounded-full backdrop-blur-3xl border border-white/10">
         <Loader2 className="w-8 h-8 text-white animate-spin" />
-        <span className="text-[10px] uppercase tracking-[0.3em] text-white/40 font-bold">Neural Space Syncing</span>
+        <span className="text-[10px] uppercase tracking-[0.3em] text-white/40 font-bold">
+          Neural Space Syncing
+        </span>
       </div>
     </Html>
   );
@@ -51,9 +63,16 @@ export default function Home() {
     try {
       setIsGenerating(true);
       const { generateSubInterests } = await import("@/app/actions");
-      const existingLabels = useInterestStore.getState().nodes.map((n) => n.label);
+      const existingLabels = useInterestStore
+        .getState()
+        .nodes.map((n) => n.label);
       const provider = useSettingsStore.getState().provider;
-      const result = await generateSubInterests(label, language, existingLabels, provider);
+      const result = await generateSubInterests(
+        label,
+        language,
+        existingLabels,
+        provider,
+      );
       useInterestStore.getState().addNodes(result.topics, newNode.id);
       useInterestStore.getState().addTokens(result.tokens);
     } catch (err) {
@@ -63,39 +82,50 @@ export default function Home() {
     }
   };
 
-  if (!mounted) return (
-    <div className="w-full h-screen bg-[#020202] flex items-center justify-center">
-      <Loader2 className="w-6 h-6 text-white/10 animate-spin" />
-    </div>
-  );
+  if (!mounted)
+    return (
+      <div className="w-full h-screen bg-[#020202] flex items-center justify-center">
+        <Loader2 className="w-6 h-6 text-white/10 animate-spin" />
+      </div>
+    );
 
   return (
-    <main className="relative w-full h-screen bg-[#050505] overflow-hidden text-neutral-100 font-sans selection:bg-white/20">
+    <main className="relative w-full h-screen bg-[#000000] overflow-hidden text-neutral-100 font-sans selection:bg-white/20">
       <div className="absolute inset-0 z-0">
         <Canvas
           camera={{ position: [0, 0, 15], fov: 60 }}
-          gl={{ 
+          gl={{
             antialias: true,
-            powerPreference: "high-performance" 
+            powerPreference: "high-performance",
+            stencil: false,
+            depth: true,
           }}
           dpr={[1, 2]}
         >
-          <color attach="background" args={["#020202"]} />
-          <ambientLight intensity={0.2} />
-          <pointLight position={[15, 15, 15]} intensity={1.5} />
-          <pointLight position={[-15, -15, -15]} intensity={0.5} />
+          <color attach="background" args={["#000000"]} />
+          <ambientLight intensity={0.5} />
 
           <Suspense fallback={<SceneLoader />}>
             <ThreeGraph isSimulationPaused={isSubjectModalOpen} />
+
             <Stars
-              radius={150}
-              depth={100}
-              count={starsMotionEnabled ? 7000 : 3000}
-              factor={6}
+              radius={100}
+              depth={50}
+              count={starsMotionEnabled ? 2000 : 800}
+              factor={4}
               saturation={0}
               fade
-              speed={isSubjectModalOpen || !starsMotionEnabled ? 0 : 0.8}
+              speed={isSubjectModalOpen || !starsMotionEnabled ? 0 : 0.5}
             />
+
+            <EffectComposer enableNormalPass={false} multisampling={0}>
+              <Bloom
+                intensity={0.4}
+                luminanceThreshold={0.9}
+                luminanceSmoothing={0.1}
+                mipmapBlur={false}
+              />
+            </EffectComposer>
           </Suspense>
 
           <CameraController isRotationPaused={true} />
@@ -104,7 +134,7 @@ export default function Home() {
 
       <div className="absolute top-0 w-full p-4 lg:p-8 z-10 pointer-events-none">
         <div className="flex items-start justify-between">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             className="flex flex-col gap-4 pointer-events-auto"
@@ -119,7 +149,9 @@ export default function Home() {
                 </h1>
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[10px] font-mono text-white/40 uppercase tracking-widest">System Online</span>
+                  <span className="text-[10px] font-mono text-white/40 uppercase tracking-widest">
+                    System Online
+                  </span>
                 </div>
               </div>
             </div>
@@ -134,12 +166,16 @@ export default function Home() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-white/40">
                       <Activity size={12} />
-                      <span className="text-[10px] uppercase font-bold tracking-tighter">Neural Capacity</span>
+                      <span className="text-[10px] uppercase font-bold tracking-tighter">
+                        Neural Capacity
+                      </span>
                     </div>
-                    <span className="text-[10px] font-mono text-emerald-400">{nodes.length} Nodes</span>
+                    <span className="text-[10px] font-mono text-emerald-400">
+                      {nodes.length} Nodes
+                    </span>
                   </div>
                   <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                    <motion.div 
+                    <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${Math.min(nodes.length * 5, 100)}%` }}
                       className="h-full bg-white/40"
@@ -150,7 +186,9 @@ export default function Home() {
                       <Zap size={14} />
                     </div>
                     <div>
-                      <p className="text-[9px] text-white/40 uppercase font-bold tracking-widest">Sessão / Tokens</p>
+                      <p className="text-[9px] text-white/40 uppercase font-bold tracking-widest">
+                        Sessão / Tokens
+                      </p>
                       <p className="text-lg font-mono text-white leading-none">
                         {totalTokens.toLocaleString()}
                       </p>
@@ -168,19 +206,29 @@ export default function Home() {
             >
               <BookOpen size={20} />
             </Link>
-            
+
             {nodes.length > 0 && (
               <button
-                onClick={() => useInterestStore.getState().setFocusTarget({ x: 0, y: 0, z: 0 })}
+                onClick={() => {
+                  useInterestStore.getState().setFocusNodeId(null);
+                  useInterestStore.getState().setFocusTarget({
+                    x: 0,
+                    y: 0,
+                    z: 0,
+                  });
+                }}
                 className="flex items-center justify-center w-12 h-12 bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 rounded-2xl transition-all text-white/60 hover:text-blue-400"
               >
                 <Target size={20} />
               </button>
             )}
-            
+
             <div className="h-12 w-[1px] bg-white/10 mx-1" />
-            
-            <SubjectListModal isOpen={isSubjectModalOpen} onOpenChange={setIsSubjectModalOpen} />
+
+            <SubjectListModal
+              isOpen={isSubjectModalOpen}
+              onOpenChange={setIsSubjectModalOpen}
+            />
             <SettingsMenu />
             <LanguageSelector />
           </div>
