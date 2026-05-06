@@ -5,183 +5,262 @@
 ![Three.js](https://img.shields.io/badge/Three.js-000000?style=for-the-badge&logo=threedotjs&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
-![Gemini API](https://img.shields.io/badge/Gemini_API-8E75B2?style=for-the-badge&logo=google&logoColor=white)
 ![Groq API](https://img.shields.io/badge/Groq_API-F55036?style=for-the-badge&logo=groq&logoColor=white)
-![Mistral API](https://img.shields.io/badge/Mistral_API-ff7000?style=for-the-badge&logoColor=white)
 
-Um sistema web interativo focado na exploração e mapeamento tridimensional de conhecimento. A aplicação usa IA generativa para expandir tópicos, organiza relações em um grafo 3D e agora também oferece uma rota minimalista de leitura, onde cada assunto pode ser resumido pela IA com foco em clareza e estudo.
+Sistema web interativo para exploracao e mapeamento tridimensional de conhecimento. A aplicacao usa a API da Groq para expandir topicos, organiza relacoes em um grafo 3D e oferece uma rota de leitura com resumos estruturados gerados por IA.
 
 ## O que este projeto faz
 
-O Intelligence Space atua como uma ferramenta de expansão e organização de conhecimento. A partir de um termo ou tópico-chave especificado pelo usuário:
+O Intelligence Space funciona como um mapa mental 3D com expansao por IA. A partir de um termo informado pelo usuario:
 
-1. O termo é instanciado como o nó de origem em um ambiente tridimensional.
-2. O servidor realiza uma inferência contextual utilizando o provedor configurado no menu de settings (**Auto**, **Gemini**, **Groq** ou **Mistral**).
-3. No modo **Auto**, o sistema aplica fallback em cadeia: **Gemini → Groq → Mistral**.
-4. O serviço integra a resposta em formato JSON estrito, mitigando inconsistências de formatação.
-5. A malha visual gera e interliga instâncias adjacentes ao nó de origem, organizando as relações de forma autônoma e em tempo real com base em física computacional.
-6. Quando o usuário acessa a rota de conhecimento, pode selecionar qualquer tópico já criado para receber um resumo curto gerado por IA, junto com pontos principais e perguntas para aprofundamento.
+1. O termo e criado como node raiz no espaco tridimensional.
+2. O servidor chama a Groq para gerar subtopicos relacionados.
+3. A resposta da IA deve vir como JSON estrito.
+4. O sistema remove topicos duplicados ou muito parecidos.
+5. Os novos topicos sao adicionados como nodes filhos.
+6. O grafo 3D reorganiza visualmente os nodes em tempo real.
+7. A rota `/knowledge` permite selecionar topicos criados e gerar resumos de estudo.
 
-### Interação com os Nós
+## Interacao com os nodes
 
-- **Clique único**: Centraliza a câmera orbital no nó selecionado, que passa a ser o ponto de rotação da cena. A transição é suavizada via interpolação linear (lerp).
-- **Duplo clique**: Expande o nó, gerando novos sub-interesses via IA no idioma selecionado pelo usuário.
+- Clique unico: foca a camera no node selecionado.
+- Duplo clique: expande o node usando a Groq para gerar novos subtopicos.
+- Botao de alvo: recentraliza a camera no centro do espaco.
 
-### Modal de Assuntos
+## Modal de assuntos
 
-- O botão de lista no topo abre um modal hierárquico com os tópicos já criados.
-- A visualização apresenta relação pai-filho com opção de **expandir/recolher por nó**.
-- Há ações globais de **Expandir tudo** e **Recolher tudo** para facilitar navegação em árvores maiores.
-- O modal foi ampliado e teve a identação dos níveis refinada para facilitar leitura de ramos mais profundos.
+O botao de lista abre um modal hierarquico com todos os topicos criados.
 
-### Rota de Conhecimento
+Recursos:
 
-- A aplicação possui a rota [src/app/knowledge/page.tsx](src/app/knowledge/page.tsx), acessível pelo botão de livro no topo da home.
-- A interface dessa rota foi simplificada para um fluxo de leitura:
-  - lista de tópicos na lateral
-  - resumo principal do tópico selecionado
-  - pontos principais gerados por IA
-  - perguntas para explorar
-  - chips com tópico pai e subtópicos
-- Os resumos são gerados sob demanda e armazenados em cache local da tela para evitar chamadas repetidas desnecessárias durante a navegação.
+- Visualizacao pai-filho.
+- Expandir/recolher por node.
+- Expandir tudo.
+- Recolher tudo.
+- Snapshot dos nodes no momento de abertura do modal.
+- Pausa da simulacao 3D enquanto o modal esta aberto.
 
-### Resumos por IA
+## Rota de conhecimento
 
-- A Server Action [src/app/actions.ts](src/app/actions.ts) agora também gera resumos estruturados para tópicos.
-- O resumo retorna:
-  - `summary`: explicação curta em 2 a 4 frases
-  - `keyPoints`: 3 pontos principais
-  - `questions`: 3 perguntas para aprofundamento
-- O fluxo segue a mesma estratégia de fallback entre **Gemini**, **Groq** e **Mistral**.
+Arquivo: `src/app/knowledge/page.tsx`
 
-### Proteção contra Assuntos Repetidos
+A rota `/knowledge` transforma os topicos do grafo em uma interface de leitura.
 
-- O sistema agora evita com muito mais rigor a criação de bolinhas duplicadas ou quase duplicadas.
-- Foi adicionada uma camada de similaridade em [src/lib/topicSimilarity.ts](src/lib/topicSimilarity.ts), que compara tópicos por:
-  - normalização de caixa alta/baixa
-  - remoção de acentos
-  - remoção de pontuação
-  - tokens equivalentes e plural simples
-  - alta similaridade textual
-- A deduplicação acontece em dois pontos:
-  1.  no retorno gerado pela IA, antes de enviar os tópicos ao cliente
-  2.  no store global, antes de criar novos nós no espaço
+Ela possui:
 
-### Menu de Configurações
+- Lista lateral de topicos.
+- Filtro por texto.
+- Breadcrumb do topico selecionado.
+- Resumo gerado por IA.
+- 3 pontos principais.
+- 3 perguntas para aprofundamento.
+- Topico pai.
+- Subtopicos diretos.
 
-- Seleção manual de provedor de IA (ou modo automático).
-- Toggle para **Movimento das estrelas** do fundo.
-- Ação para **Limpar Espaço** (remove nós e conexões atuais).
+Os resumos ficam em cache local da tela durante a navegacao, evitando chamadas repetidas para o mesmo topico e idioma.
 
-### Seletor de Idioma
+## Provedor de IA
 
-A aplicação possui um menu flutuante no cabeçalho que permite ao usuário alternar entre **Português** 🇧🇷 e **Inglês** 🇺🇸. Todos os nós gerados a partir da seleção respeitam o idioma escolhido.
+O projeto usa apenas a Groq.
 
-## Arquitetura Técnica
+Modelo configurado no codigo:
 
-A arquitetura do sistema balanceia renderização gráfica assíncrona com interações de servidor restritas e de baixa latência:
-
-- **Camada de Interface**: Fundamentado sobre Next.js (App Router), a aplicação utiliza o padrão visual _Glassmorphism_ para a interface do usuário (UI) bidimensional, que atua como overlay interativo. Abaixo desta camada, opera um contexto WebGL construído através da abstração do React Three Fiber, com otimizações de performance (pausa de simulação/render em contextos de modal).
-- **Topologia de Grafo 3D**: A coordenação vetorial (x, y, z) dos nós e suas conexões são processadas por um motor de física customizado. A implementação computa forças de repulsão, atração ao centro e molas entre nós conectados, garantindo uma distribuição orgânica dos dados.
-- **Controle de Câmera**: O `CameraController` encapsula o `OrbitControls` e implementa interpolação suave para transicionar o ponto focal da câmera ao nó selecionado pelo usuário, criando uma experiência de navegação cinematográfica.
-- **Gerenciamento de Estado**: Estruturado por meio do `Zustand` de forma global, o sistema gerencia a hierarquia dos nós, a matriz de vizinhança, o ponto focal da câmera (`focusTarget`) e o total de tokens consumidos na sessão.
-- **Integração IA Multi-Provedor**: O processamento da linguagem estruturada é restrito à rotina de Server Actions (`actions.ts`). O sistema implementa um mecanismo de fallback automático entre provedores:
-  1. **Gemini** (primário) — Google Gemini 2.0 Flash
-  2. **Groq** (fallback) — LLaMA 3.1 8B Instant
-  3. **Mistral** (fallback) — mistral-small-latest
-
-  Quando o provedor primário falha (erro 429, quota excedida, timeout ou qualquer erro de rede), o sistema automaticamente tenta o próximo provedor disponível.
-
-- **Camada Anti-Duplicação**: Antes de novos nós serem criados, o sistema compara rótulos existentes e candidatos por normalização e similaridade textual, reduzindo drasticamente a chance de assuntos repetidos no grafo.
-
-## Tecnologias Utilizadas
-
-A pilha de ferramentas utilizada tem como finalidade estabelecer interatividade imediata, estabilidade visual em tempo real e simulações físicas fluidas.
-
-- **Next.js & React**: Framework estrutural, responsável pelas rotas, hidratação estática/dinâmica e composição de estados.
-- **React Three Fiber e Three.js**: Motores essenciais baseados em WebGL, empregados no cálculo visual dos polígonos, shaders e matriz posicional.
-- **Drei (@react-three/drei)**: Utilitários focados no controle das câmeras orbitais, mapeamento ambiental e profundidade.
-- **Tailwind CSS v4**: Framework CSS para estilização contida e direta da camada UI, implementando componentes translúcidos.
-- **Framer Motion**: Camada secundária aplicada na atenuação de entrada e saída, vital para a responsividade perceptível bidimensional.
-- **Zustand**: Gestor reativo responsável pelo store global.
-- **Google Gemini API**: Modelo primário (Gemini 2.0 Flash), infraestrutura geradora que coordena o fluxo de expansão intelectual da aplicação.
-- **Groq API**: Provedor de fallback (LLaMA 3.1 8B Instant), acionado automaticamente quando o provedor primário encontra limitações de cota ou falhas de conectividade.
-- **Mistral API**: Provedor adicional (mistral-small-latest), disponível no fallback automático e seleção manual.
-- **Heurísticas de Similaridade de Texto**: Utilizadas para deduplicação robusta de tópicos semelhantes.
-
-## Estrutura do Projeto
-
+```txt
+llama-3.1-8b-instant
 ```
+
+Nao ha mais suporte a outros provedores ou fallback automatico.
+
+Variavel de ambiente necessaria:
+
+```env
+GROQ_API_KEY=sua_chave_groq_aqui
+```
+
+## Arquitetura tecnica
+
+A arquitetura e dividida em quatro camadas principais:
+
+1. Rotas e interface: `src/app`
+2. Componentes visuais: `src/components`
+3. Estado global: `src/store`
+4. Logica auxiliar: `src/lib`
+
+## Estrutura do projeto
+
+```txt
 src/
 ├── app/
-│   ├── actions.ts           # Server Actions — expansão de tópicos + resumos por IA com fallback
-│   ├── knowledge/
-│   │   └── page.tsx         # Rota minimalista para ler resumos gerados por IA
-│   ├── page.tsx             # Página principal com Canvas 3D e barra de busca
-│   ├── layout.tsx           # Layout raiz da aplicação
-│   └── globals.css          # Estilos globais
+│   ├── actions.ts
+│   ├── globals.css
+│   ├── icon.svg
+│   ├── layout.tsx
+│   ├── page.tsx
+│   └── knowledge/
+│       └── page.tsx
 ├── components/
-│   ├── ThreeGraph.tsx       # Grafo 3D com nós, links e motor de física
-│   ├── CameraController.tsx # Controle de câmera orbital com interpolação suave
-│   ├── SubjectListModal.tsx # Modal de tópicos em árvore (pai-filho)
-│   ├── SettingsMenu.tsx     # Menu de configurações (provedor, estrelas, limpar espaço)
-│   └── LanguageSelector.tsx # Menu flutuante de seleção de idioma (PT/EN)
+│   ├── CameraController.tsx
+│   ├── LanguageSelector.tsx
+│   ├── ParticleField.tsx
+│   ├── SettingsMenu.tsx
+│   ├── SubjectListModal.tsx
+│   └── ThreeGraph.tsx
 ├── lib/
-│   └── topicSimilarity.ts   # Normalização e deduplicação de tópicos semelhantes
+│   └── topicSimilarity.ts
 └── store/
-   ├── useInterestStore.ts  # Estado global: nós, links, foco da câmera e proteção contra duplicatas
-   ├── useLanguageStore.ts  # Estado global: idioma selecionado
-   └── useSettingsStore.ts  # Estado global: provedor IA e preferências visuais
+    ├── useInterestStore.ts
+    ├── useLanguageStore.ts
+    └── useSettingsStore.ts
 ```
 
-## Funcionalidades Implementadas
+## Arquivos principais
 
-- [x] Geração de mapa 3D de conhecimento a partir de interesses do usuário
-- [x] Expansão de nós com IA via clique duplo
-- [x] Foco da câmera por clique simples
-- [x] Reset/centralização da câmera
-- [x] Seleção manual de provedor de IA e fallback automático
-- [x] Seleção de idioma PT/EN
-- [x] Contador de tokens da sessão
-- [x] Modal hierárquico de assuntos com expandir/recolher tudo
-- [x] Modal mais largo para árvores profundas
-- [x] Rota de conhecimento com layout minimalista
-- [x] Resumos de tópicos gerados por IA
-- [x] Pontos principais e perguntas de aprofundamento
-- [x] Proteção robusta contra tópicos repetidos ou quase repetidos
-- [x] Filtro e cache local de resumos na tela de conhecimento
+| Arquivo | Responsabilidade |
+| --- | --- |
+| `src/app/page.tsx` | Tela principal com Canvas 3D, busca e controles |
+| `src/app/knowledge/page.tsx` | Tela de leitura e resumos por IA |
+| `src/app/actions.ts` | Server Actions e integracao com Groq |
+| `src/components/ThreeGraph.tsx` | Renderizacao do grafo 3D, fisica, foco e expansao |
+| `src/components/CameraController.tsx` | Controle suave da camera com OrbitControls |
+| `src/components/SubjectListModal.tsx` | Modal hierarquico de topicos |
+| `src/components/SettingsMenu.tsx` | Configuracoes visuais e status da Groq |
+| `src/components/LanguageSelector.tsx` | Seletor PT/EN |
+| `src/store/useInterestStore.ts` | Estado global do grafo |
+| `src/store/useLanguageStore.ts` | Estado global do idioma |
+| `src/store/useSettingsStore.ts` | Estado global das configuracoes |
+| `src/lib/topicSimilarity.ts` | Normalizacao e deduplicacao de topicos |
 
-## Observações de Uso
+## Fluxo de criacao de topicos
 
-- O sistema reduz fortemente a chance de criar assuntos duplicados, mas ainda depende da qualidade semântica das respostas dos provedores.
-- A rota de conhecimento consome tokens ao gerar resumos, assim como a expansão de tópicos no Space.
-- O modo **Auto** continua sendo a melhor escolha para resiliência, pois tenta outros provedores quando o primeiro falha.
+```txt
+Usuario digita um topico
+  -> src/app/page.tsx
+  -> useInterestStore.addNode
+  -> src/app/actions.ts / generateSubInterests
+  -> Groq
+  -> parse JSON
+  -> dedupeTopics
+  -> useInterestStore.addNodes
+  -> ThreeGraph renderiza nodes e links
+```
 
-## Ambiente de Desenvolvimento
+## Fluxo de expansao por duplo clique
 
-Para executar e depurar a plataforma em ambiente local, proceda com o roteiro abaixo:
+```txt
+Usuario da duplo clique em um node
+  -> ThreeGraph.handleExpand
+  -> generateSubInterests
+  -> Groq
+  -> addNodes com parentId do node clicado
+  -> link pai-filho criado
+  -> simulacao 3D reposiciona o grafo
+```
 
-1. Provisione os pacotes de dependências da aplicação utilizando seu gerenciador:
-   ```bash
-   npm install
-   ```
-2. Forneça os tokens privados dos modelos LLM. Na raiz do projeto, configure o arquivo `.env.local` com suas credenciais:
+## Fluxo de resumo
 
-   ```env
-   # API primária (recomendada)
-   GEMINI_API_KEY="SUA_CHAVE_GEMINI"
+```txt
+Usuario abre /knowledge
+  -> seleciona um topico
+  -> summarizeTopic recebe topico + contexto
+  -> Groq gera JSON estruturado
+  -> tela mostra summary, keyPoints e questions
+  -> resultado fica em cache local da pagina
+```
 
-   # API de fallback 1 (recomendada)
-   GROQ_API_KEY="SUA_CHAVE_GROQ"
+## Estado global
 
-   # API de fallback 2 (opcional)
-   MISTRAL_API_KEY="SUA_CHAVE_MISTRAL"
-   ```
+O projeto usa Zustand com persistencia no navegador.
 
-   > **Nota**: O sistema funciona com apenas uma chave configurada. Para melhor disponibilidade, recomenda-se configurar Gemini + Groq + Mistral.
+Stores:
 
-3. Inicialize a instância local do servidor de desenvolvimento:
-   ```bash
-   npm run dev
-   ```
-4. Verifique a ativação do serviço acessando a porta de roteamento primária pelo navegador em: `http://localhost:3000`.
+- `useInterestStore`: nodes, links, foco da camera e tokens.
+- `useLanguageStore`: idioma atual (`pt` ou `en`).
+- `useSettingsStore`: preferencia de movimento das estrelas.
+
+O projeto nao usa banco de dados. Os dados do grafo ficam no `localStorage`.
+
+## Renderizacao 3D
+
+O grafo usa React Three Fiber e Three.js.
+
+Principais tecnicas:
+
+- `instancedMesh` para renderizar nodes com melhor performance.
+- `lineSegments` para conexoes.
+- `BufferGeometry` para atualizar links.
+- Simulacao fisica customizada com repulsao, atracao central e forca de mola.
+- Labels com `Text` e `Billboard`.
+- `Bloom` para brilho.
+- `Stars` como fundo espacial.
+
+## Protecao contra duplicatas
+
+Arquivo: `src/lib/topicSimilarity.ts`
+
+A deduplicacao compara labels por:
+
+- caixa baixa
+- remocao de acentos
+- remocao de pontuacao
+- normalizacao de espacos
+- plural simples
+- assinatura de tokens
+- coeficiente de Dice por bigrams
+
+A protecao acontece em dois pontos:
+
+1. Depois da resposta da Groq, ainda no servidor.
+2. Antes de criar nodes no Zustand.
+
+## Variaveis de ambiente
+
+Crie um arquivo `.env.local` na raiz:
+
+```env
+GROQ_API_KEY="SUA_CHAVE_GROQ"
+```
+
+## Scripts disponiveis
+
+```json
+{
+  "dev": "next dev",
+  "build": "next build",
+  "start": "next start",
+  "lint": "eslint"
+}
+```
+
+## Como executar localmente
+
+1. Instale as dependencias:
+
+```bash
+npm install
+```
+
+2. Configure `.env.local`:
+
+```env
+GROQ_API_KEY="SUA_CHAVE_GROQ"
+```
+
+3. Inicie o servidor de desenvolvimento:
+
+```bash
+npm run dev
+```
+
+4. Acesse:
+
+```txt
+http://localhost:3000
+```
+
+## Observacoes
+
+- A aplicacao depende da chave `GROQ_API_KEY` para gerar subtopicos e resumos.
+- Sem essa chave, a interface abre, mas as chamadas de IA falham.
+- O mapa e salvo no navegador via `localStorage`.
+- A rota `/knowledge` depende dos topicos ja criados no grafo.
+- O projeto nao usa mais outros provedores ou fallback automatico.

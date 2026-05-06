@@ -66,12 +66,10 @@ export default function Home() {
       const existingLabels = useInterestStore
         .getState()
         .nodes.map((n) => n.label);
-      const provider = useSettingsStore.getState().provider;
       const result = await generateSubInterests(
         label,
         language,
         existingLabels,
-        provider,
       );
       useInterestStore.getState().addNodes(result.topics, newNode.id);
       useInterestStore.getState().addTokens(result.tokens);

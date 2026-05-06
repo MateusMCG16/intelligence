@@ -60,4 +60,7 @@ next-env.d.ts
 # Gemini
 GEMINI.md
 
+# Documentation generated locally
+/Doc/
+
 ```

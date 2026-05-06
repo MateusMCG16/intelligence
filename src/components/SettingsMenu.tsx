@@ -3,43 +3,26 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Settings, Trash2 } from "lucide-react";
-import { useSettingsStore, AIProvider } from "@/store/useSettingsStore";
+import { useSettingsStore } from "@/store/useSettingsStore";
 import { useInterestStore } from "@/store/useInterestStore";
 import { checkAiProviders } from "@/app/actions";
 
-const PROVIDERS: { id: AIProvider; label: string }[] = [
-  { id: "auto", label: "Automático" },
-  { id: "gemini", label: "Gemini" },
-  { id: "groq", label: "Groq" },
-  { id: "mistral", label: "Mistral" },
-];
-
 export default function SettingsMenu() {
-  const { provider, setProvider, starsMotionEnabled, setStarsMotionEnabled } =
-    useSettingsStore();
+  const { starsMotionEnabled, setStarsMotionEnabled } = useSettingsStore();
   const { nodes } = useInterestStore();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoadingStatuses, setIsLoadingStatuses] = useState(false);
-  const [providerStatus, setProviderStatus] = useState<Record<string, boolean>>(
-    {
-      gemini: true,
-      groq: true,
-      mistral: true,
-      auto: true,
-    },
-  );
+  const [isGroqConfigured, setIsGroqConfigured] = useState(true);
 
   const handleOpen = async () => {
     setIsOpen(true);
     setIsLoadingStatuses(true);
     try {
       const status = await checkAiProviders();
-      setProviderStatus({
-        auto: true,
-        ...status,
-      });
+      setIsGroqConfigured(status.groq);
     } catch (error) {
-      console.error("Failed to check AI providers status", error);
+      console.error("Failed to check Groq provider status", error);
+      setIsGroqConfigured(false);
     } finally {
       setIsLoadingStatuses(false);
     }
@@ -50,7 +33,7 @@ export default function SettingsMenu() {
       <button
         onClick={() => (isOpen ? setIsOpen(false) : handleOpen())}
         className="flex items-center justify-center w-10 h-10 bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl transition-all duration-300 text-white/80 hover:text-white cursor-pointer"
-        title="Configurações"
+        title="Configuracoes"
       >
         <Settings size={18} />
       </button>
@@ -74,43 +57,23 @@ export default function SettingsMenu() {
                 <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-2 px-2 pt-1">
                   Provedor de IA
                 </h3>
-                <div className="flex flex-col space-y-1">
-                  {PROVIDERS.map((p) => {
-                    const isDisabled = !providerStatus[p.id];
-                    return (
-                      <button
-                        key={p.id}
-                        disabled={isDisabled}
-                        onClick={() => setProvider(p.id)}
-                        className={`flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
-                          provider === p.id && !isDisabled
-                            ? "bg-blue-500/20 text-blue-400 font-medium"
-                            : isDisabled
-                              ? "text-white/20 cursor-not-allowed opacity-50"
-                              : "text-white/60 hover:bg-white/10 hover:text-white cursor-pointer"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span>{p.label}</span>
-                          {isLoadingStatuses && p.id !== "auto" && (
-                            <div className="w-3 h-3 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
-                          )}
-                        </div>
-                        {provider === p.id && !isDisabled && (
-                          <motion.div
-                            layoutId="active-provider"
-                            className="w-1.5 h-1.5 rounded-full bg-blue-400"
-                          />
-                        )}
-                      </button>
-                    );
-                  })}
+
+                <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-blue-500/10 text-blue-400 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span>Groq</span>
+                    {isLoadingStatuses && (
+                      <div className="w-3 h-3 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+                    )}
+                  </div>
+                  <span className="text-xs text-white/50">
+                    {isGroqConfigured ? "Configurado" : "Sem chave"}
+                  </span>
                 </div>
               </div>
 
               <div className="p-2 border-b border-white/10">
                 <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-2 px-2 pt-1">
-                  Espaço 3D
+                  Espaco 3D
                 </h3>
 
                 <button
@@ -156,7 +119,7 @@ export default function SettingsMenu() {
                     className="flex items-center space-x-2 w-full px-3 py-2.5 rounded-lg text-sm text-red-400/80 hover:bg-red-500/10 hover:text-red-400 transition-colors"
                   >
                     <Trash2 size={16} />
-                    <span>Limpar Espaço</span>
+                    <span>Limpar Espaco</span>
                   </button>
                 </div>
               )}

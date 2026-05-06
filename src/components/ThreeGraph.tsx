@@ -12,7 +12,6 @@ import { Text, Billboard } from "@react-three/drei";
 import * as THREE from "three";
 import { useInterestStore, InterestNode } from "@/store/useInterestStore";
 import { useLanguageStore } from "@/store/useLanguageStore";
-import { useSettingsStore } from "@/store/useSettingsStore";
 import { generateSubInterests } from "@/app/actions";
 
 const SPHERE_GEO = new THREE.IcosahedronGeometry(1, 15); // Much smoother and more organic than a standard sphere
@@ -196,7 +195,6 @@ export default function ThreeGraph({
   const setFocusNodeId = useInterestStore((state) => state.setFocusNodeId);
   const focusNodeId = useInterestStore((state) => state.focusNodeId);
   const language = useLanguageStore((state) => state.language);
-  const provider = useSettingsStore((state) => state.provider);
 
   const [loadingNodeId, setLoadingNodeId] = useState<string | null>(null);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
@@ -414,7 +412,6 @@ export default function ThreeGraph({
           label,
           language,
           existingLabels,
-          provider,
         );
         addNodes(result.topics, id);
         addTokens(result.tokens);
@@ -424,7 +421,7 @@ export default function ThreeGraph({
         setLoadingNodeId(null);
       }
     },
-    [addNodes, addTokens, language, loadingNodeId, provider],
+    [addNodes, addTokens, language, loadingNodeId],
   );
 
   return (

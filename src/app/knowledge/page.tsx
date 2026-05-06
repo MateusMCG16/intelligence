@@ -19,7 +19,6 @@ import {
 import { summarizeTopic, type TopicSummaryResponse } from "@/app/actions";
 import { useInterestStore, type InterestNode } from "@/store/useInterestStore";
 import { useLanguageStore } from "@/store/useLanguageStore";
-import { useSettingsStore } from "@/store/useSettingsStore";
 
 type TopicNode = Pick<InterestNode, "id" | "label" | "parentId" | "color">;
 
@@ -141,7 +140,6 @@ export default function KnowledgePage() {
   const nodes = useInterestStore((state) => state.nodes);
   const addTokens = useInterestStore((state) => state.addTokens);
   const language = useLanguageStore((state) => state.language);
-  const provider = useSettingsStore((state) => state.provider);
   const copy = COPY[language];
 
   useEffect(() => {
@@ -187,7 +185,7 @@ export default function KnowledgePage() {
   );
 
   const summaryKey = selectedNode
-    ? `${language}:${provider}:${selectedNode.id}`
+    ? `${language}:groq:${selectedNode.id}`
     : null;
   const selectedSummary = summaryKey ? summaryCache[summaryKey] : undefined;
 
@@ -202,7 +200,6 @@ export default function KnowledgePage() {
         const result = await summarizeTopic({
           topic: selectedNode.label,
           language,
-          provider,
           context: {
             parent: selectedParent?.label ?? null,
             breadcrumb: breadcrumbs.map((n) => n.label),
@@ -229,7 +226,6 @@ export default function KnowledgePage() {
     selectedNode,
     summaryKey,
     language,
-    provider,
     refreshIndex,
     summaryCache,
     breadcrumbs,
