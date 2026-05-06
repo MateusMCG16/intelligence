@@ -16,6 +16,7 @@ import { useSettingsStore } from "@/store/useSettingsStore";
 import {
   Search,
   Compass,
+  Navigation,
   Sparkles,
   Target,
   BookOpen,
@@ -47,6 +48,8 @@ export default function Home() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [isSubjectModalOpen, setIsSubjectModalOpen] = useState(false);
+  const [isFreeNavigationEnabled, setIsFreeNavigationEnabled] =
+    useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -126,7 +129,12 @@ export default function Home() {
             </EffectComposer>
           </Suspense>
 
-          <CameraController isRotationPaused={true} />
+          <CameraController
+            isRotationPaused={true}
+            isFreeNavigationEnabled={
+              isFreeNavigationEnabled && !isSubjectModalOpen
+            }
+          />
         </Canvas>
       </div>
 
@@ -206,19 +214,41 @@ export default function Home() {
             </Link>
 
             {nodes.length > 0 && (
-              <button
-                onClick={() => {
-                  useInterestStore.getState().setFocusNodeId(null);
-                  useInterestStore.getState().setFocusTarget({
-                    x: 0,
-                    y: 0,
-                    z: 0,
-                  });
-                }}
-                className="flex items-center justify-center w-12 h-12 bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 rounded-2xl transition-all text-white/60 hover:text-blue-400"
-              >
-                <Target size={20} />
-              </button>
+              <>
+                <button
+                  type="button"
+                  aria-label="Reset camera"
+                  title="Reset camera"
+                  onClick={() => {
+                    useInterestStore.getState().setFocusNodeId(null);
+                    useInterestStore.getState().setFocusTarget({
+                      x: 0,
+                      y: 0,
+                      z: 0,
+                    });
+                  }}
+                  className="flex items-center justify-center w-12 h-12 bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 rounded-2xl transition-all text-white/60 hover:text-blue-400"
+                >
+                  <Target size={20} />
+                </button>
+
+                <button
+                  type="button"
+                  aria-label="Toggle free navigation"
+                  aria-pressed={isFreeNavigationEnabled}
+                  title="Toggle free navigation"
+                  onClick={() =>
+                    setIsFreeNavigationEnabled((enabled) => !enabled)
+                  }
+                  className={`flex items-center justify-center w-12 h-12 backdrop-blur-xl border border-white/10 rounded-2xl transition-all ${
+                    isFreeNavigationEnabled
+                      ? "bg-white/10 text-emerald-400"
+                      : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-emerald-400"
+                  }`}
+                >
+                  <Navigation size={20} />
+                </button>
+              </>
             )}
 
             <div className="h-12 w-[1px] bg-white/10 mx-1" />

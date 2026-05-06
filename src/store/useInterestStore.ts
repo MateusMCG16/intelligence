@@ -124,7 +124,13 @@ export const useInterestStore = create<InterestStore>()(
       setNodes: (nodes) => set({ nodes }),
       setFocusTarget: (target) => set({ focusTarget: target }),
       clear: () =>
-        set({ nodes: [], links: [], focusTarget: null, totalTokens: 0 }),
+        set({
+          nodes: [],
+          links: [],
+          focusTarget: null,
+          focusNodeId: null,
+          totalTokens: 0,
+        }),
     }),
     {
       name: "interest-storage",
