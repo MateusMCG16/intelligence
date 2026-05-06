@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Html, Stars } from "@react-three/drei";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import ThreeGraph from "@/components/ThreeGraph";
 import CameraController from "@/components/CameraController";
+import NodeDetailsPanel from "@/components/NodeDetailsPanel";
 import LanguageSelector from "@/components/LanguageSelector";
 import SettingsMenu from "@/components/SettingsMenu";
 import SubjectListModal from "@/components/SubjectListModal";
@@ -50,10 +51,20 @@ export default function Home() {
   const [isSubjectModalOpen, setIsSubjectModalOpen] = useState(false);
   const [isFreeNavigationEnabled, setIsFreeNavigationEnabled] =
     useState(false);
+  const [graphSearch, setGraphSearch] = useState("");
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const graphSearchResults = useMemo(() => {
+    const q = graphSearch.trim().toLowerCase();
+    if (!q) return [];
+
+    return nodes
+      .filter((node) => node.label.toLowerCase().includes(q))
+      .slice(0, 6);
+  }, [graphSearch, nodes]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -261,7 +272,55 @@ export default function Home() {
             <LanguageSelector />
           </div>
         </div>
+
+        {nodes.length > 0 && (
+          <div className="pointer-events-auto absolute left-1/2 top-4 w-[min(420px,calc(100vw-2rem))] -translate-x-1/2 lg:top-8">
+            <div className="relative">
+              <Search
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30"
+                size={16}
+              />
+              <input
+                type="text"
+                value={graphSearch}
+                onChange={(event) => setGraphSearch(event.target.value)}
+                placeholder="Buscar tópico no espaço..."
+                className="w-full rounded-2xl border border-white/10 bg-black/35 py-3 pl-11 pr-4 text-sm text-white shadow-2xl backdrop-blur-2xl outline-none placeholder:text-white/25 focus:border-white/20"
+              />
+
+              {graphSearchResults.length > 0 && (
+                <div className="mt-2 overflow-hidden rounded-2xl border border-white/10 bg-black/70 p-1 shadow-2xl backdrop-blur-2xl">
+                  {graphSearchResults.map((node) => (
+                    <button
+                      key={node.id}
+                      type="button"
+                      onClick={() => {
+                        useInterestStore.getState().setFocusNodeId(node.id);
+                        useInterestStore.getState().setFocusTarget(null);
+                        setGraphSearch("");
+                      }}
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-white/70 transition hover:bg-white/10 hover:text-white"
+                    >
+                      <span
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{ backgroundColor: node.color }}
+                      />
+                      <span className="min-w-0 flex-1 truncate">
+                        {node.label}
+                      </span>
+                      <span className="text-[10px] uppercase tracking-widest text-white/25">
+                        Nível {node.depth ?? 0}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
+
+      <NodeDetailsPanel />
 
       <div className="absolute bottom-12 w-full z-10 pointer-events-none flex flex-col items-center gap-6 px-4">
         <div className="pointer-events-auto w-full max-w-xl">

@@ -105,7 +105,7 @@ function LinksRenderer({
 }: {
   physicsRef: React.MutableRefObject<Record<string, PhysicsData>>;
 }) {
-  const { nodes, links } = useInterestStore();
+  const { nodes, links, focusNodeId } = useInterestStore();
   const geometryRef = useRef<THREE.BufferGeometry>(null);
 
   const MAX_LINKS = 3000;
@@ -117,6 +117,27 @@ function LinksRenderer({
     for (let i = 0; i < nodes.length; i++) map[nodes[i].id] = nodes[i];
     return map;
   }, [nodes]);
+
+  const highlightedIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (!focusNodeId) return ids;
+
+    ids.add(focusNodeId);
+    let current = nodeMap[focusNodeId];
+    const visited = new Set<string>();
+
+    while (current?.parentId && !visited.has(current.id)) {
+      visited.add(current.id);
+      ids.add(current.parentId);
+      current = nodeMap[current.parentId];
+    }
+
+    nodes.forEach((node) => {
+      if (node.parentId === focusNodeId) ids.add(node.id);
+    });
+
+    return ids;
+  }, [focusNodeId, nodeMap, nodes]);
 
   useFrame(() => {
     if (!geometryRef.current || links.length === 0) return;
@@ -143,11 +164,17 @@ function LinksRenderer({
         pos[i6 + 5] = target.z;
 
         _tempColor.set(sourceNode.color);
+        if (highlightedIds.has(l.source) && highlightedIds.has(l.target)) {
+          _tempColor.multiplyScalar(2.4);
+        }
         col[i6] = _tempColor.r;
         col[i6 + 1] = _tempColor.g;
         col[i6 + 2] = _tempColor.b;
 
         _tempColor.set(targetNode.color);
+        if (highlightedIds.has(l.source) && highlightedIds.has(l.target)) {
+          _tempColor.multiplyScalar(2.4);
+        }
         col[i6 + 3] = _tempColor.r;
         col[i6 + 4] = _tempColor.g;
         col[i6 + 5] = _tempColor.b;
@@ -204,6 +231,47 @@ export default function ThreeGraph({
   const physicsRef = useRef<Record<string, PhysicsData>>({});
   const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const nodeAnchors = useMemo(() => {
+    const anchors = new Map<
+      string,
+      { x: number; y: number; z: number; depth: number }
+    >();
+
+    nodes.forEach((node) => {
+      anchors.set(node.id, {
+        x: node.x,
+        y: node.y,
+        z: node.z,
+        depth: node.depth ?? 0,
+      });
+    });
+
+    return anchors;
+  }, [nodes]);
+
+  const highlightedIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (!focusNodeId) return ids;
+
+    const nodeMap = new Map(nodes.map((node) => [node.id, node]));
+    ids.add(focusNodeId);
+
+    let current = nodeMap.get(focusNodeId);
+    const visited = new Set<string>();
+
+    while (current?.parentId && !visited.has(current.id)) {
+      visited.add(current.id);
+      ids.add(current.parentId);
+      current = nodeMap.get(current.parentId);
+    }
+
+    nodes.forEach((node) => {
+      if (node.parentId === focusNodeId) ids.add(node.id);
+    });
+
+    return ids;
+  }, [focusNodeId, nodes]);
+
   useEffect(() => {
     document.body.style.cursor = hoveredNodeId ? "pointer" : "default";
     return () => {
@@ -218,9 +286,9 @@ export default function ThreeGraph({
       if (!current[node.id]) {
         current[node.id] = {
           id: node.id,
-          x: node.x + (Math.random() - 0.5) * 8,
-          y: node.y + (Math.random() - 0.5) * 8,
-          z: node.z + (Math.random() - 0.5) * 8,
+          x: node.x + (Math.random() - 0.5) * 1.2,
+          y: node.y + (Math.random() - 0.5) * 1.2,
+          z: node.z + (Math.random() - 0.5) * 1.2,
           vx: node.vx,
           vy: node.vy,
           vz: node.vz,
@@ -244,12 +312,21 @@ export default function ThreeGraph({
       const k = 0.15;
       const damping = 0.88;
       const repulsion = 3.5; // Increased repulsion for better spacing
-      const centerAttract = 0.01;
+      const centerAttract = 0.004;
 
       for (let i = 0; i < physArray.length; i++) {
         const n1 = physArray[i];
+        const anchor = nodeAnchors.get(n1.id);
+        const anchorStrength = anchor?.depth === 0 ? 0.018 : 0.007;
+
+        if (anchor) {
+          n1.vx += (anchor.x - n1.x) * anchorStrength;
+          n1.vy += (anchor.y - n1.y) * anchorStrength;
+          n1.vz += (anchor.z - n1.z) * anchorStrength;
+        }
+
         n1.vx -= n1.x * centerAttract;
-        n1.vy -= n1.y * centerAttract;
+        n1.vy -= n1.y * centerAttract * 0.6;
         n1.vz -= n1.z * centerAttract;
 
         for (let j = i + 1; j < physArray.length; j++) {
@@ -305,7 +382,8 @@ export default function ThreeGraph({
         n.y += n.vy;
         n.z += n.vz;
 
-        const targetScale = hoveredNodeId === n.id ? 1.6 : 1.0;
+        const targetScale =
+          hoveredNodeId === n.id ? 1.6 : highlightedIds.has(n.id) ? 1.25 : 1.0;
         n.scale = THREE.MathUtils.lerp(n.scale, targetScale, 0.1);
       }
     }
@@ -342,6 +420,8 @@ export default function ThreeGraph({
         // Hover makes it glow significantly more
         if (hoveredNodeId === node.id) {
           _tempColor.multiplyScalar(3.5);
+        } else if (highlightedIds.has(node.id)) {
+          _tempColor.multiplyScalar(2.2);
         } else {
           _tempColor.multiplyScalar(1.2);
         }

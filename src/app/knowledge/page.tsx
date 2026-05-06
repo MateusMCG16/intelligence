@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
@@ -139,6 +139,8 @@ export default function KnowledgePage() {
 
   const nodes = useInterestStore((state) => state.nodes);
   const addTokens = useInterestStore((state) => state.addTokens);
+  const setFocusNodeId = useInterestStore((state) => state.setFocusNodeId);
+  const setFocusTarget = useInterestStore((state) => state.setFocusTarget);
   const language = useLanguageStore((state) => state.language);
   const copy = COPY[language];
 
@@ -146,6 +148,17 @@ export default function KnowledgePage() {
     setHydrated(true);
     if (window.innerWidth < 1024) setSidebarOpen(false);
   }, []);
+
+  useEffect(() => {
+    if (!hydrated || selectedId) return;
+
+    const topicId = new URLSearchParams(window.location.search).get("topic");
+    if (!topicId || !nodes.some((node) => node.id === topicId)) return;
+
+    setSelectedId(topicId);
+    setFocusNodeId(topicId);
+    setFocusTarget(null);
+  }, [hydrated, nodes, selectedId, setFocusNodeId, setFocusTarget]);
 
   const topicNodes = useMemo(() => {
     return [...nodes]
@@ -182,6 +195,15 @@ export default function KnowledgePage() {
   const selectedChildren = useMemo(
     () => (selectedNode ? (childrenMap.get(selectedNode.id) ?? []) : []),
     [childrenMap, selectedNode],
+  );
+
+  const selectTopic = useCallback(
+    (id: string) => {
+      setSelectedId(id);
+      setFocusNodeId(id);
+      setFocusTarget(null);
+    },
+    [setFocusNodeId, setFocusTarget],
   );
 
   const summaryKey = selectedNode
@@ -286,7 +308,7 @@ export default function KnowledgePage() {
                   <button
                     key={node.id}
                     onClick={() => {
-                      setSelectedId(node.id);
+                      selectTopic(node.id);
                       if (window.innerWidth < 1024) setSidebarOpen(false);
                     }}
                     className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${
@@ -381,7 +403,7 @@ export default function KnowledgePage() {
                       <div key={node.id} className="flex items-center gap-2">
                         <span
                           className="hover:text-white/60 cursor-pointer transition-colors"
-                          onClick={() => setSelectedId(node.id)}
+                          onClick={() => selectTopic(node.id)}
                         >
                           {node.label}
                         </span>
@@ -495,7 +517,7 @@ export default function KnowledgePage() {
                             </h4>
                             {selectedParent ? (
                               <button
-                                onClick={() => setSelectedId(selectedParent.id)}
+                                onClick={() => selectTopic(selectedParent.id)}
                                 className="flex items-center gap-3 p-3 bg-white/5 border border-white/5 rounded-2xl hover:bg-white/10 transition-colors w-full group text-white/70"
                               >
                                 <div
@@ -528,7 +550,7 @@ export default function KnowledgePage() {
                                 selectedChildren.map((child) => (
                                   <button
                                     key={child.id}
-                                    onClick={() => setSelectedId(child.id)}
+                                    onClick={() => selectTopic(child.id)}
                                     className="px-4 py-2 bg-white/5 border border-white/5 rounded-xl text-sm font-medium hover:bg-white/10 hover:border-white/20 transition-all flex items-center gap-2 text-white/70"
                                   >
                                     <div
